@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Protocol documentation
+    url: https://github.com/DataLayerHost/flutter_barcodetx/blob/main/PROTOCOL.md
+    about: Read the wire format and interoperability rules
+  - name: Security reports
+    url: https://github.com/DataLayerHost/flutter_barcodetx/security/advisories/new
+    about: Privately report a security vulnerability
