@@ -2,13 +2,23 @@ import 'dart:typed_data';
 
 import '../exceptions/exceptions.dart';
 
-/// An opaque, already-signed blockchain transaction and its caller-supplied type.
+/// An opaque, already-signed transaction with its blockchain and network.
 final class BarcodeTxTransaction {
-  BarcodeTxTransaction({required String type, required String hex})
-      : type = _normalizeType(type),
-        hex = _normalizeHex(hex);
+  BarcodeTxTransaction({
+    required String blockchain,
+    this.networkId,
+    required String hex,
+  })  : blockchain = _normalizeBlockchain(blockchain),
+        hex = _normalizeHex(hex) {
+    if (networkId != null && (networkId! < 0 || networkId! > 0xffffffff)) {
+      throw const BarcodeTxValidationException(
+        'Network ID must be an unsigned 32-bit integer.',
+      );
+    }
+  }
 
-  final String type;
+  final String blockchain;
+  final int? networkId;
   final String hex;
 
   Uint8List get bytes {
@@ -19,33 +29,46 @@ final class BarcodeTxTransaction {
     return result;
   }
 
-  Map<String, String> toMap() => {'type': type, 'hex': hex};
+  Map<String, Object> toMap() => {
+        'blockchain': blockchain,
+        if (networkId != null) 'networkId': networkId!,
+        'hex': hex,
+      };
 
   factory BarcodeTxTransaction.fromMap(Map<String, Object?> value) {
-    final type = value['type'];
+    final blockchain = value['blockchain'];
+    final networkId = value['networkId'];
     final hex = value['hex'];
-    if (type is! String || hex is! String) {
+    if (blockchain is! String ||
+        (networkId != null && networkId is! int) ||
+        hex is! String) {
       throw const BarcodeTxValidationException(
-        'Transaction maps require String "type" and "hex" values.',
+        'Transaction maps require String "blockchain" and "hex" values and an optional integer "networkId".',
       );
     }
-    return BarcodeTxTransaction(type: type, hex: hex);
+    return BarcodeTxTransaction(
+      blockchain: blockchain,
+      networkId: networkId as int?,
+      hex: hex,
+    );
   }
 
-  static BarcodeTxTransaction fromBytes(String type, List<int> bytes) =>
+  static BarcodeTxTransaction fromBytes(
+    String blockchain,
+    List<int> bytes, {
+    int? networkId,
+  }) =>
       BarcodeTxTransaction(
-        type: type,
+        blockchain: blockchain,
+        networkId: networkId,
         hex: bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join(),
       );
 
-  static String _normalizeType(String value) {
-    final normalized = value.toUpperCase();
-    if (normalized.isEmpty) {
-      throw const BarcodeTxValidationException('Transaction type is empty.');
-    }
-    if (!RegExp(r'^[A-Z0-9][A-Z0-9._+-]*$').hasMatch(normalized)) {
+  static String _normalizeBlockchain(String value) {
+    final normalized = value.trim().toUpperCase();
+    if (!RegExp(r'^[A-Z]{3}$').hasMatch(normalized)) {
       throw const BarcodeTxValidationException(
-        'Transaction type must be an ASCII identifier containing only A-Z, 0-9, dot, underscore, plus, or hyphen.',
+        'Blockchain must be a three-letter ASCII code.',
       );
     }
     return normalized;
@@ -74,11 +97,15 @@ final class BarcodeTxTransaction {
 
   @override
   bool operator ==(Object other) =>
-      other is BarcodeTxTransaction && other.type == type && other.hex == hex;
+      other is BarcodeTxTransaction &&
+      other.blockchain == blockchain &&
+      other.networkId == networkId &&
+      other.hex == hex;
 
   @override
-  int get hashCode => Object.hash(type, hex);
+  int get hashCode => Object.hash(blockchain, networkId, hex);
 
   @override
-  String toString() => 'BarcodeTxTransaction(type: $type, hex: $hex)';
+  String toString() =>
+      'BarcodeTxTransaction(blockchain: $blockchain, networkId: $networkId, hex: $hex)';
 }

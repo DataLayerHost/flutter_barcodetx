@@ -16,7 +16,8 @@ For authenticity, bind the transaction to an authenticated workflow outside Barc
 - maximum canonical batch: 1 MiB
 - maximum transaction: 512 KiB
 - maximum transactions: 256
-- maximum type: 32 ASCII bytes
+- blockchain code: exactly 3 uppercase ASCII letters
+- optional network ID: unsigned 32-bit integer
 - maximum accepted distinct symbols: 8,192
 - exact length/count consistency and no trailing batch bytes
 - CRC-32 before fountain insertion

@@ -15,12 +15,16 @@ Each entry is contiguous:
 
 | Relative offset | Size | Field |
 | ---: | ---: | --- |
-| 0 | 1 | `TYPE_LENGTH` |
-| 1 | `TYPE_LENGTH` | uppercase ASCII type |
-| `1 + TYPE_LENGTH` | 4 | raw transaction byte length |
-| `5 + TYPE_LENGTH` | declared length | opaque signed transaction bytes |
+| 0 | 3 | uppercase ASCII blockchain code |
+| 3 | 1 | flags; bit `0` indicates a network ID follows |
+| 4 | 4, optional | unsigned network ID when flags bit `0` is set |
+| 4 or 8 | 4 | raw transaction byte length |
+| 8 or 12 | declared length | opaque signed transaction bytes |
 
-The type grammar is `[A-Z0-9][A-Z0-9._+-]*`. Default limits are 32 type bytes, 512 KiB per transaction, 256 transactions, and 1 MiB for the complete canonical batch. Zero-length transactions are invalid. Public hex is decoded pairwise to these raw bytes.
+The blockchain code is exactly three uppercase ASCII letters matching `[A-Z]{3}`. There is no length byte or numeric blockchain registry. The optional network ID is interpreted within that blockchain ecosystem; for `ETH`, it is the EVM chain ID, such as `1` for Ethereum Mainnet or `137` (`0x00000089`) for Polygon. Unknown flag bits are invalid. Default limits are 512 KiB per transaction, 256 transactions, and 1 MiB for the complete canonical batch. Zero-length transactions are invalid. Public hex is decoded pairwise to these raw bytes.
+
+This is the only BarcodeTx v1 batch layout. The decoder does not recognize or
+attempt to migrate any earlier variable-type layout.
 
 ## Protected fountain payload and transfer ID
 

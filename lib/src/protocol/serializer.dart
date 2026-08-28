@@ -10,6 +10,7 @@ import 'bytes.dart';
 final class BarcodeTxSerializer {
   static const List<int> magic = [0x42, 0x54, 0x58, 0x42]; // BTXB
   static const int version = 1;
+  static const int networkPresentFlag = 0x01;
 
   static Uint8List serialize(BarcodeTxBatch batch, BarcodeTxOptions options) {
     options.validate();
@@ -31,18 +32,17 @@ final class BarcodeTxSerializer {
       ..addByte(version);
     writeUint16(builder, batch.transactions.length);
     for (final transaction in batch.transactions) {
-      final type = ascii.encode(transaction.type);
+      final blockchain = ascii.encode(transaction.blockchain);
       final payload = transaction.bytes;
-      if (type.length > options.maxTypeBytes || type.length > 0xff) {
-        throw BarcodeTxLimitException(
-            'Transaction type exceeds ${options.maxTypeBytes} bytes.');
-      }
       if (payload.length > options.maxTransactionBytes) {
         throw BarcodeTxLimitException(
             'Transaction exceeds ${options.maxTransactionBytes} bytes.');
       }
-      builder.addByte(type.length);
-      builder.add(type);
+      builder.add(blockchain);
+      builder.addByte(transaction.networkId == null ? 0 : networkPresentFlag);
+      if (transaction.networkId case final network?) {
+        writeUint32(builder, network);
+      }
       writeUint32(builder, payload.length);
       builder.add(payload);
     }
@@ -75,24 +75,32 @@ final class BarcodeTxSerializer {
     var offset = 7;
     final transactions = <BarcodeTxTransaction>[];
     for (var index = 0; index < count; index++) {
-      if (offset >= bytes.length) {
-        throw const BarcodeTxProtocolException('Truncated transaction type.');
+      if (offset + 8 > bytes.length) {
+        throw const BarcodeTxProtocolException('Truncated transaction record.');
       }
-      final typeLength = bytes[offset++];
-      if (typeLength == 0 ||
-          typeLength > options.maxTypeBytes ||
-          offset + typeLength + 4 > bytes.length) {
-        throw const BarcodeTxProtocolException(
-            'Invalid transaction type length.');
-      }
-      String type;
+      String blockchain;
       try {
-        type = ascii.decode(bytes.sublist(offset, offset + typeLength));
+        blockchain = ascii.decode(bytes.sublist(offset, offset + 3));
       } on FormatException {
-        throw const BarcodeTxProtocolException(
-            'Transaction type is not ASCII.');
+        throw const BarcodeTxProtocolException('Blockchain code is not ASCII.');
       }
-      offset += typeLength;
+      offset += 3;
+      final flags = bytes[offset++];
+      if (flags & ~networkPresentFlag != 0) {
+        throw const BarcodeTxProtocolException(
+            'Unsupported transaction flags.');
+      }
+      int? networkId;
+      if (flags & networkPresentFlag != 0) {
+        if (offset + 4 > bytes.length) {
+          throw const BarcodeTxProtocolException('Truncated network ID.');
+        }
+        networkId = readUint32(bytes, offset);
+        offset += 4;
+      }
+      if (offset + 4 > bytes.length) {
+        throw const BarcodeTxProtocolException('Truncated transaction length.');
+      }
       final payloadLength = readUint32(bytes, offset);
       offset += 4;
       if (payloadLength == 0 ||
@@ -102,7 +110,8 @@ final class BarcodeTxSerializer {
             'Invalid transaction payload length.');
       }
       transactions.add(BarcodeTxTransaction.fromBytes(
-          type, bytes.sublist(offset, offset + payloadLength)));
+          blockchain, bytes.sublist(offset, offset + payloadLength),
+          networkId: networkId));
       offset += payloadLength;
     }
     if (offset != bytes.length) {

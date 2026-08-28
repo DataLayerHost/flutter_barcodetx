@@ -7,7 +7,6 @@ final class BarcodeTxOptions {
     this.maxBatchBytes = 1024 * 1024,
     this.maxTransactionBytes = 512 * 1024,
     this.maxTransactions = 256,
-    this.maxTypeBytes = 32,
     this.maxReceivedSymbols = 8192,
   });
 
@@ -18,7 +17,6 @@ final class BarcodeTxOptions {
   final int maxBatchBytes;
   final int maxTransactionBytes;
   final int maxTransactions;
-  final int maxTypeBytes;
   final int maxReceivedSymbols;
 
   static const int frameOverhead = 27;
@@ -45,8 +43,6 @@ final class BarcodeTxOptions {
         maxTransactionBytes > 0xffffffff ||
         maxTransactions <= 0 ||
         maxTransactions > 0xffff ||
-        maxTypeBytes <= 0 ||
-        maxTypeBytes > 0xff ||
         maxReceivedSymbols <= 0) {
       throw ArgumentError(
           'Protocol limits are outside their wire-format ranges.');

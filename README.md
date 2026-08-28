@@ -43,8 +43,12 @@ flutter pub add flutter_barcodetx
 import 'package:flutter_barcodetx/flutter_barcodetx.dart';
 
 final transactions = [
-  BarcodeTxTransaction(type: 'xcb', hex: '0xABCD'),
-  BarcodeTxTransaction(type: 'btc', hex: '02000000'),
+  BarcodeTxTransaction(blockchain: 'xcb', hex: '0xABCD'),
+  BarcodeTxTransaction(
+    blockchain: 'eth',
+    networkId: 137, // Polygon
+    hex: '02000000',
+  ),
 ];
 
 final encoder = BarcodeTxEncoder(transactions: transactions);
@@ -59,8 +63,8 @@ Map input is also accepted:
 
 ```dart
 final encoder = BarcodeTxEncoder(transactions: [
-  {'type': 'xcb', 'hex': '0xabcd'},
-  {'type': 'btc', 'hex': '02000000'},
+  {'blockchain': 'xcb', 'hex': '0xabcd'},
+  {'blockchain': 'eth', 'networkId': 137, 'hex': '02000000'},
 ]);
 ```
 
@@ -89,7 +93,7 @@ for (final bytes in scannerRawByteStream) {
 
   if (state.isComplete) {
     for (final transaction in decoder.transactions) {
-      print('${transaction.type}: ${transaction.hex}');
+      print('${transaction.blockchain}: ${transaction.hex}');
     }
   }
 }
