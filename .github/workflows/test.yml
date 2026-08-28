@@ -24,6 +24,8 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - run: dart run tool/benchmark.dart
+      - name: Restore analyzer configuration after Flutter tooling
+        run: git restore --worktree analysis_options.yaml
       - run: flutter pub publish --dry-run
       - name: Analyze scanner example
         working-directory: example
