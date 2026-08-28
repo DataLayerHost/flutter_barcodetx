@@ -7,49 +7,57 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('normalization and validation', () {
-    test('normalizes lowercase type, hex, and optional prefix', () {
-      final transaction = BarcodeTxTransaction(type: 'xcb-test', hex: '0xabcD');
-      expect(transaction.type, 'XCB-TEST');
+    test('normalizes blockchain, hex, and optional prefix', () {
+      final transaction =
+          BarcodeTxTransaction(blockchain: 'xcb', hex: '0xabcD');
+      expect(transaction.blockchain, 'XCB');
       expect(transaction.hex, 'ABCD');
       expect(transaction.bytes, [0xab, 0xcd]);
-      expect(transaction.toMap(), {'type': 'XCB-TEST', 'hex': 'ABCD'});
+      expect(transaction.toMap(), {'blockchain': 'XCB', 'hex': 'ABCD'});
     });
 
     test('accepts map input', () {
       final encoder = BarcodeTxEncoder(transactions: [
-        {'type': 'btc', 'hex': '02000000'},
+        {'blockchain': 'btc', 'hex': '02000000'},
       ]);
-      expect(encoder.batch.transactions.single.type, 'BTC');
+      expect(encoder.batch.transactions.single.blockchain, 'BTC');
     });
 
     test('rejects malformed inputs with typed exceptions', () {
-      expect(() => BarcodeTxTransaction(type: '', hex: 'AA'),
+      expect(() => BarcodeTxTransaction(blockchain: '', hex: 'AA'),
           throwsA(isA<BarcodeTxValidationException>()));
-      expect(() => BarcodeTxTransaction(type: 'ETH!', hex: 'AA'),
+      expect(() => BarcodeTxTransaction(blockchain: 'ETH!', hex: 'AA'),
           throwsA(isA<BarcodeTxValidationException>()));
-      expect(() => BarcodeTxTransaction(type: 'ETH', hex: ''),
+      expect(() => BarcodeTxTransaction(blockchain: 'ETH', hex: ''),
           throwsA(isA<BarcodeTxValidationException>()));
-      expect(() => BarcodeTxTransaction(type: 'ETH', hex: 'GG'),
+      expect(() => BarcodeTxTransaction(blockchain: 'ETH', hex: 'GG'),
           throwsA(isA<BarcodeTxValidationException>()));
-      expect(() => BarcodeTxTransaction(type: 'ETH', hex: 'ABC'),
+      expect(() => BarcodeTxTransaction(blockchain: 'ETH', hex: 'ABC'),
           throwsA(isA<BarcodeTxValidationException>()));
     });
   });
 
   group('round trips', () {
     test('single XCB transaction', () {
-      _roundTrip([BarcodeTxTransaction(type: 'XCB', hex: '0xABCD')]);
+      _roundTrip([BarcodeTxTransaction(blockchain: 'XCB', hex: '0xABCD')]);
     });
 
     test('single ETH transaction', () {
-      _roundTrip([BarcodeTxTransaction(type: 'eth', hex: 'f86c0185')]);
+      _roundTrip([BarcodeTxTransaction(blockchain: 'eth', hex: 'f86c0185')]);
     });
 
     test('mixed transactions preserve order', () {
       _roundTrip([
-        BarcodeTxTransaction(type: 'xcb', hex: 'AABB'),
-        BarcodeTxTransaction(type: 'btc', hex: '02000000'),
-        BarcodeTxTransaction(type: 'sol', hex: '010203040506'),
+        BarcodeTxTransaction(blockchain: 'xcb', hex: 'AABB'),
+        BarcodeTxTransaction(blockchain: 'btc', hex: '02000000'),
+        BarcodeTxTransaction(blockchain: 'sol', hex: '010203040506'),
+      ]);
+    });
+
+    test('optional network ID survives round trip', () {
+      _roundTrip([
+        BarcodeTxTransaction(
+            blockchain: 'ETH', networkId: 137, hex: 'F86C0185'),
       ]);
     });
 
@@ -58,7 +66,7 @@ void main() {
               5000, (index) => (index & 0xff).toRadixString(16).padLeft(2, '0'))
           .join();
       final options = const BarcodeTxOptions(maxQrPayloadBytes: 96);
-      final transaction = BarcodeTxTransaction(type: 'DOGE', hex: hex);
+      final transaction = BarcodeTxTransaction(blockchain: 'DOG', hex: hex);
       final encoder =
           BarcodeTxEncoder(transactions: [transaction], options: options);
       expect(encoder.sourceBlockCount, greaterThan(50));
@@ -74,8 +82,7 @@ void main() {
       for (var iteration = 0; iteration < 10; iteration++) {
         final random = Random(0x425458 + iteration);
         final bytes = List<int>.generate(1400, (_) => random.nextInt(256));
-        final transaction =
-            BarcodeTxTransaction.fromBytes('CHAIN_$iteration', bytes);
+        final transaction = BarcodeTxTransaction.fromBytes('ABC', bytes);
         final options = const BarcodeTxOptions(maxQrPayloadBytes: 96);
         final encoder =
             BarcodeTxEncoder(transactions: [transaction], options: options);
@@ -99,7 +106,9 @@ void main() {
 
   group('protocol and integrity', () {
     test('serialization and transfer ID are deterministic', () {
-      final transactions = [BarcodeTxTransaction(type: 'xcb', hex: 'AABBCCDD')];
+      final transactions = [
+        BarcodeTxTransaction(blockchain: 'xcb', hex: 'AABBCCDD')
+      ];
       final first = BarcodeTxEncoder(transactions: transactions);
       final second = BarcodeTxEncoder(transactions: transactions);
       expect(first.serializedBatch, second.serializedBatch);
@@ -109,18 +118,20 @@ void main() {
 
     test('different batches have different IDs', () {
       final first = BarcodeTxEncoder(
-          transactions: [BarcodeTxTransaction(type: 'XCB', hex: 'AA')]);
+          transactions: [BarcodeTxTransaction(blockchain: 'XCB', hex: 'AA')]);
       final second = BarcodeTxEncoder(
-          transactions: [BarcodeTxTransaction(type: 'XCB', hex: 'AB')]);
+          transactions: [BarcodeTxTransaction(blockchain: 'XCB', hex: 'AB')]);
       expect(first.transferId, isNot(second.transferId));
     });
 
     test('mixed transfers are ignored after the session is selected', () {
       final first = BarcodeTxEncoder(transactions: [
-        BarcodeTxTransaction(type: 'XCB', hex: List.filled(1000, 'AA').join())
+        BarcodeTxTransaction(
+            blockchain: 'XCB', hex: List.filled(1000, 'AA').join())
       ]);
       final second = BarcodeTxEncoder(transactions: [
-        BarcodeTxTransaction(type: 'BTC', hex: List.filled(1000, 'BB').join())
+        BarcodeTxTransaction(
+            blockchain: 'BTC', hex: List.filled(1000, 'BB').join())
       ]);
       final decoder = BarcodeTxDecoder();
       expect(decoder.addFrame(first.frameAt(0).bytes).accepted, isTrue);
@@ -128,12 +139,12 @@ void main() {
       for (var id = 1; !decoder.isComplete; id++) {
         decoder.addFrame(first.frameAt(id).bytes);
       }
-      expect(decoder.transactions.single.type, 'XCB');
+      expect(decoder.transactions.single.blockchain, 'XCB');
     });
 
     test('rejects corrupted frame', () {
       final encoder = BarcodeTxEncoder(
-          transactions: [BarcodeTxTransaction(type: 'XCB', hex: 'AABB')]);
+          transactions: [BarcodeTxTransaction(blockchain: 'XCB', hex: 'AABB')]);
       final bytes = Uint8List.fromList(encoder.frameAt(0).bytes)..[23] ^= 1;
       expect(() => BarcodeTxDecoder().addFrame(bytes),
           throwsA(isA<BarcodeTxIntegrityException>()));
@@ -142,7 +153,8 @@ void main() {
     test('rejects corrupted reconstructed payload', () {
       final encoder = BarcodeTxEncoder(
         transactions: [
-          BarcodeTxTransaction(type: 'XCB', hex: List.filled(100, 'AA').join())
+          BarcodeTxTransaction(
+              blockchain: 'XCB', hex: List.filled(100, 'AA').join())
         ],
         options: const BarcodeTxOptions(maxQrPayloadBytes: 64),
       );
@@ -172,7 +184,7 @@ void main() {
 
     test('rejects unknown frame version', () {
       final encoder = BarcodeTxEncoder(
-          transactions: [BarcodeTxTransaction(type: 'XCB', hex: 'AA')]);
+          transactions: [BarcodeTxTransaction(blockchain: 'XCB', hex: 'AA')]);
       final bytes = Uint8List.fromList(encoder.frameAt(0).bytes)..[2] = 99;
       expect(() => BarcodeTxDecoder().addFrame(bytes),
           throwsA(isA<BarcodeTxProtocolException>()));
@@ -199,8 +211,10 @@ void main() {
         1,
         0,
         1,
-        1,
         88,
+        67,
+        66,
+        0,
         0x7f,
         0xff,
         0xff,

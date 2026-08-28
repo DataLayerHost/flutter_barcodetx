@@ -77,7 +77,9 @@ class _ScannerPageState extends State<ScannerPage> {
       Text('${decoder.transactions.length} TRANSACTIONS RECEIVED'),
       for (final transaction in decoder.transactions) ...[
         const SizedBox(height: 12),
-        Text(transaction.type),
+        Text(
+          '${transaction.blockchain}${transaction.networkId == null ? '' : ' · ${transaction.networkId}'}',
+        ),
         SelectableText(transaction.hex),
       ],
     ],

@@ -8,7 +8,7 @@ final class BarcodeTxBatch {
   final int version;
   final List<BarcodeTxTransaction> transactions;
 
-  List<Map<String, String>> toMaps() => transactions
+  List<Map<String, Object>> toMaps() => transactions
       .map((transaction) => transaction.toMap())
       .toList(growable: false);
 }

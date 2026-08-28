@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Replace variable transaction types with fixed three-letter blockchain codes.
+- Add an optional unsigned 32-bit network ID to every transaction record.
+- Replace the `type` API with `blockchain` and optional `networkId` fields.
+- Define a single BarcodeTx v1 layout without legacy decoding.
+
 ## 0.1.0
 
 - Initial BarcodeTX v1 binary batch and frame protocol.

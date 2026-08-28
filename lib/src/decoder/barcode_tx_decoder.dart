@@ -45,7 +45,7 @@ final class BarcodeTxDecoder {
   List<BarcodeTxTransaction> get transactions =>
       _result?.transactions ??
       (throw StateError('BarcodeTX transfer is not complete.'));
-  List<Map<String, String>> get transactionMaps =>
+  List<Map<String, Object>> get transactionMaps =>
       _result?.toMaps() ??
       (throw StateError('BarcodeTX transfer is not complete.'));
 

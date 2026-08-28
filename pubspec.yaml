@@ -1,6 +1,6 @@
 name: flutter_barcodetx
 description: Animated QR transport for already-signed blockchain transactions using deterministic fountain erasure coding.
-version: 0.1.0
+version: 0.2.0
 homepage: https://github.com/DataLayerHost/flutter_barcodetx
 repository: https://github.com/DataLayerHost/flutter_barcodetx
 documentation: https://github.com/DataLayerHost/flutter_barcodetx#readme
