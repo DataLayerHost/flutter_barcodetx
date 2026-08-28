@@ -10,7 +10,7 @@ void main() {
   for (final size in [250, 500, 1024, 5 * 1024, 10 * 1024]) {
     final random = Random(size);
     final bytes = List<int>.generate(size, (_) => random.nextInt(256));
-    final transaction = BarcodeTxTransaction.fromBytes('BENCH', bytes);
+    final transaction = BarcodeTxTransaction.fromBytes('XCB', bytes);
 
     final encodeWatch = Stopwatch()..start();
     final encoder = BarcodeTxEncoder(transactions: [transaction]);
